@@ -1,0 +1,23 @@
+# Не загружать базу данных в git (она создаётся автоматически на сервере)
+shop.db
+
+# Системные файлы Windows
+Thumbs.db
+desktop.ini
+
+# Python кэш
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Виртуальное окружение
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
