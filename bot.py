@@ -1,5 +1,41 @@
 import os
+import sys
+import struct
 import logging
+
+# ── Совместимость с Python 3.13 (модуль imghdr удалён из stdlib) ──
+if sys.version_info >= (3, 13):
+    try:
+        import imghdr  # noqa: пробуем PyPI-пакет
+    except ImportError:
+        # Минимальная реализация imghdr для telegram-bot 13.x
+        class _ImgHdr:
+            _TESTS = [
+                (b'\x89PNG\r\n\x1a\n', 'png'),
+                (b'GIF87a', 'gif'), (b'GIF89a', 'gif'),
+                (b'BM', 'bmp'),
+                (b'MM\x00\x2a', 'tiff'), (b'II\x2a\x00', 'tiff'),
+                (b'RIFF', 'webp'),
+            ]
+            def what(self, file=None, h=None):
+                if h is None:
+                    try:
+                        with open(file, 'rb') as f:
+                            h = f.read(32)
+                    except Exception:
+                        return None
+                for sig, fmt in self._TESTS:
+                    if h[:len(sig)] == sig:
+                        return fmt
+                if h[6:10] in (b'JFIF', b'Exif') or h[:2] == b'\xff\xd8':
+                    return 'jpeg'
+                return None
+        _inst = _ImgHdr()
+        import types
+        _mod = types.ModuleType('imghdr')
+        _mod.what = _inst.what
+        sys.modules['imghdr'] = _mod
+
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 )
