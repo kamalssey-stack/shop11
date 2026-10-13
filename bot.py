@@ -36,6 +36,8 @@ if sys.version_info >= (3, 13):
         _mod.what = _inst.what
         sys.modules['imghdr'] = _mod
 
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 )
@@ -47,6 +49,33 @@ from telegram.ext import (
 import config
 import database as db
 from translations import t, STATUS_TEXT, STATUS_EMOJI, ALL_STATUSES
+
+
+# ── Простой веб-сервер для бесплатного хостинга (Render, Koyeb, Railway) ──
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(b"BestAzeDrop Shop Bot is running 24/7!")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def start_health_server():
+    port_str = os.environ.get("PORT")
+    if not port_str:
+        return
+    try:
+        port = int(port_str)
+        server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        logger.info(f"🌐 Сервер проверки активности запущен на порту {port}")
+    except Exception as e:
+        logger.warning(f"Не удалось запустить веб-сервер: {e}")
+
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -860,6 +889,7 @@ def cancel_add(update: Update, context: CallbackContext):
 # ══════════════════════════════════════════
 
 def main():
+    start_health_server()
     db.init_db()
     updater = Updater(config.BOT_TOKEN)
     dp = updater.dispatcher
