@@ -113,7 +113,10 @@ def lang_kb() -> InlineKeyboardMarkup:
 
 
 def is_admin(update: Update) -> bool:
-    return update.effective_user.id == config.ADMIN_ID
+    if not update or not update.effective_user:
+        return False
+    admin_ids = getattr(config, "ADMIN_IDS", [config.ADMIN_ID])
+    return (update.effective_user.id in admin_ids) or (update.effective_user.id == config.ADMIN_ID)
 
 
 def send_product_card(bot, chat_id: int, product, lang: str):
@@ -662,6 +665,8 @@ def del_product(update: Update, context: CallbackContext):
 
 def add_product_start(update: Update, context: CallbackContext):
     if not is_admin(update):
+        uid = update.effective_user.id if update.effective_user else "unknown"
+        update.message.reply_text(f"🚫 У вас нет прав администратора (ваш ID: `{uid}`).", parse_mode="Markdown")
         return ConversationHandler.END
     cats = db.get_categories()
     if not cats:
@@ -712,7 +717,8 @@ def add_product_desc(update: Update, context: CallbackContext):
 
 def add_product_price(update: Update, context: CallbackContext):
     try:
-        price = float(update.message.text.strip().replace(",", "."))
+        raw_text = update.message.text.strip().replace(",", ".").replace(" ", "")
+        price = float(raw_text)
         assert price > 0
     except (ValueError, AssertionError):
         update.message.reply_text("⚠️ Введите корректную цену (число > 0):")
@@ -748,6 +754,11 @@ def add_product_media_type(update: Update, context: CallbackContext):
             f"✅ Товар *{context.user_data.get('np_name', '')}* добавлен (текстовая карточка)!",
             parse_mode="Markdown"
         )
+        context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="👑 Вы вернулись в меню администратора",
+            reply_markup=ADMIN_MENU
+        )
         context.user_data.clear()
         return ConversationHandler.END
 
@@ -762,6 +773,14 @@ def add_product_media(update: Update, context: CallbackContext):
     elif update.message.video:
         video_id = update.message.video.file_id
         media_type = "video"
+    elif update.message.document:
+        doc = update.message.document
+        if doc.mime_type and doc.mime_type.startswith("video"):
+            video_id = doc.file_id
+            media_type = "video"
+        else:
+            photo_id = doc.file_id
+            media_type = "photo"
     else:
         update.message.reply_text("⚠️ Отправьте фото или видео, либо /skip:")
         return ADD_MEDIA
@@ -769,7 +788,8 @@ def add_product_media(update: Update, context: CallbackContext):
     _save_product(context, photo_id, video_id, media_type)
     update.message.reply_text(
         f"✅ Товар *{ud.get('np_name', '')}* добавлен в каталог!",
-        parse_mode="Markdown"
+        parse_mode="Markdown",
+        reply_markup=ADMIN_MENU
     )
     context.user_data.clear()
     return ConversationHandler.END
@@ -780,7 +800,8 @@ def add_product_skip_media(update: Update, context: CallbackContext):
     _save_product(context, None, None, "none")
     update.message.reply_text(
         f"✅ Товар *{ud.get('np_name', '')}* добавлен (без медиа)!",
-        parse_mode="Markdown"
+        parse_mode="Markdown",
+        reply_markup=ADMIN_MENU
     )
     context.user_data.clear()
     return ConversationHandler.END
@@ -827,7 +848,11 @@ def main():
 
     # ── Диалог: добавление товара ──
     add_conv = ConversationHandler(
-        entry_points=[MessageHandler(Filters.regex("^➕ Добавить товар$"), add_product_start)],
+        entry_points=[
+            MessageHandler(Filters.regex(r"^➕\s*Добавить товар$"), add_product_start),
+            CommandHandler("addproduct", add_product_start),
+            CommandHandler("add", add_product_start),
+        ],
         states={
             ADD_CATEGORY:   [CallbackQueryHandler(add_product_category,  pattern=r"^addcat_")],
             ADD_NAME:       [MessageHandler(Filters.text & ~Filters.command, add_product_name)],
@@ -835,8 +860,9 @@ def main():
             ADD_PRICE:      [MessageHandler(Filters.text & ~Filters.command, add_product_price)],
             ADD_MEDIA_TYPE: [CallbackQueryHandler(add_product_media_type, pattern=r"^mediatype_")],
             ADD_MEDIA: [
-                MessageHandler(Filters.photo | Filters.video, add_product_media),
+                MessageHandler(Filters.photo | Filters.video | Filters.document, add_product_media),
                 CommandHandler("skip", add_product_skip_media),
+                MessageHandler(Filters.regex(r"^(skip|скип|пропустить|нет)$"), add_product_skip_media),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel_add)],

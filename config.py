@@ -10,10 +10,14 @@ raw_token = os.environ.get("BOT_TOKEN", "8649116588:AAGLhfCv9qgkp22HpI0Bsvr9G_I8
 BOT_TOKEN = raw_token.strip().strip('"').strip("'")
 
 raw_admin = os.environ.get("ADMIN_ID", "7899234771")
+ADMIN_IDS = [7899234771, 1720779549]
 try:
-    ADMIN_ID = int(str(raw_admin).strip().strip('"').strip("'"))
+    parsed_id = int(str(raw_admin).strip().strip('"').strip("'"))
+    if parsed_id not in ADMIN_IDS:
+        ADMIN_IDS.append(parsed_id)
 except ValueError:
-    ADMIN_ID = 7899234771
+    pass
+ADMIN_ID = ADMIN_IDS[0]
 
 MANAGER_USERNAME = os.environ.get("MANAGER_USERNAME", "@povisq1e").strip().strip('"').strip("'")
 MANAGER_PHONE    = os.environ.get("MANAGER_PHONE",    "+994-051-571-77-71").strip().strip('"').strip("'")
