@@ -2,16 +2,11 @@ import sqlite3
 from config import DB_FILE
 
 DEFAULT_CATEGORIES = [
-    ("🧥", "Куртки",            "Gödəklər",          "Jackets"),
-    ("👕", "Майки / Футболки",   "Futbolkalar",        "T-Shirts"),
-    ("👖", "Штаны / Джинсы",    "Şalvarlar",          "Pants / Jeans"),
-    ("🧸", "Толстовки / Худи",  "Hoodie / Sviterlər", "Hoodies / Sweatshirts"),
-    ("👗", "Платья / Юбки",     "Paltarlar",          "Dresses / Skirts"),
-    ("👟", "Кроссовки / Обувь", "Ayaqqabılar",        "Sneakers / Shoes"),
-    ("👜", "Сумки",             "Çantalar",           "Bags"),
-    ("🧢", "Аксессуары",        "Aksesuarlar",        "Accessories"),
-    ("🧣", "Нижнее бельё",      "Alt paltarlar",      "Underwear"),
-    ("🕶️","Очки / Часы",       "Eynək / Saatlar",    "Glasses / Watches"),
+    ("🧥", "Жакеты",            "Jaketlər",          "Jackets"),
+    ("🧶", "Свитеры",           "Sviterlər",         "Sweaters"),
+    ("👕", "Майки / Футболки",   "Futbolkalar",       "T-Shirts"),
+    ("👖", "Джинсы",            "Cins şalvarlar",    "Jeans"),
+    ("🏃", "Спортивные штаны",  "İdman şalvarları",  "Sweatpants"),
 ]
 
 
@@ -100,11 +95,19 @@ def init_db():
     except Exception:
         pass
 
-    # Дефолтные категории при первом запуске
-    if not c.execute("SELECT COUNT(*) FROM categories WHERE active=1").fetchone()[0]:
-        for emoji, ru, az, en in DEFAULT_CATEGORIES:
+    # Синхронизация активных категорий
+    allowed_names = [ru for _, ru, _, _ in DEFAULT_CATEGORIES]
+    # Деактивируем категории, которых нет в новом списке
+    c.execute(f"UPDATE categories SET active=0 WHERE name_ru NOT IN ({','.join(['?']*len(allowed_names))})", allowed_names)
+
+    # Добавляем или активируем нужные категории
+    for emoji, ru, az, en in DEFAULT_CATEGORIES:
+        row = c.execute("SELECT id FROM categories WHERE name_ru=?", (ru,)).fetchone()
+        if row:
+            c.execute("UPDATE categories SET active=1, emoji=?, name_az=?, name_en=? WHERE id=?", (emoji, az, en, row[0]))
+        else:
             c.execute(
-                "INSERT INTO categories (emoji, name_ru, name_az, name_en) VALUES (?,?,?,?)",
+                "INSERT INTO categories (emoji, name_ru, name_az, name_en, active) VALUES (?,?,?,?,1)",
                 (emoji, ru, az, en)
             )
 
