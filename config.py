@@ -21,6 +21,7 @@ ADMIN_ID = ADMIN_IDS[0]
 
 MANAGER_USERNAME = os.environ.get("MANAGER_USERNAME", "@povisq1e").strip().strip('"').strip("'")
 MANAGER_PHONE    = os.environ.get("MANAGER_PHONE",    "+994-051-571-77-71").strip().strip('"').strip("'")
+ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD",   "135709ksA").strip().strip('"').strip("'")
 
 # База данных
 DB_FILE = "shop.db"

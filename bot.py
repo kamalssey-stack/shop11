@@ -502,6 +502,15 @@ def menu_router(update: Update, context: CallbackContext):
     elif text == "🏠 Главное меню":
         lang = get_lang(context, update.effective_user.id)
         update.message.reply_text(t(lang, "welcome"), reply_markup=main_menu(lang))
+    elif text and text.strip() == config.ADMIN_PASSWORD:
+        uid = update.effective_user.id if update.effective_user else None
+        if uid and uid not in config.ADMIN_IDS:
+            config.ADMIN_IDS.append(uid)
+        update.message.reply_text("✅ Пароль верный! Доступ к панели администратора открыт.")
+        update.message.reply_text(
+            "👑 *Панель администратора*",
+            parse_mode="Markdown", reply_markup=ADMIN_MENU
+        )
 
 
 # ══════════════════════════════════════════
@@ -517,13 +526,34 @@ ADMIN_MENU = ReplyKeyboardMarkup(
 
 
 def admin_panel(update: Update, context: CallbackContext):
-    if not is_admin(update):
-        update.message.reply_text("🚫 Нет доступа.")
+    uid = update.effective_user.id if update.effective_user else None
+
+    # Проверка пароля в аргументе: /admin 135709ksA
+    if context.args and context.args[0].strip() == config.ADMIN_PASSWORD:
+        if uid and uid not in config.ADMIN_IDS:
+            config.ADMIN_IDS.append(uid)
+        update.message.reply_text("✅ Пароль верный! Вы вошли в панель администратора.")
+        update.message.reply_text(
+            "👑 *Панель администратора*\n\n"
+            "Нажмите *🛍 Каталог* в главном меню, чтобы просмотреть магазин как покупатель.",
+            parse_mode="Markdown", reply_markup=ADMIN_MENU
+        )
         return
+
+    if is_admin(update):
+        update.message.reply_text(
+            "👑 *Панель администратора*\n\n"
+            "Нажмите *🛍 Каталог* в главном меню, чтобы просмотреть магазин как покупатель.",
+            parse_mode="Markdown", reply_markup=ADMIN_MENU
+        )
+        return
+
     update.message.reply_text(
-        "👑 *Панель администратора*\n\n"
-        "Нажмите *🛍 Каталог* в главном меню, чтобы просмотреть магазин как покупатель.",
-        parse_mode="Markdown", reply_markup=ADMIN_MENU
+        "🔒 *Вход в панель администратора*\n\n"
+        "Отправьте команду с паролем:\n"
+        f"`/admin {config.ADMIN_PASSWORD}`\n"
+        f"Или просто напишите пароль сообщением.",
+        parse_mode="Markdown"
     )
 
 
@@ -665,8 +695,11 @@ def del_product(update: Update, context: CallbackContext):
 
 def add_product_start(update: Update, context: CallbackContext):
     if not is_admin(update):
-        uid = update.effective_user.id if update.effective_user else "unknown"
-        update.message.reply_text(f"🚫 У вас нет прав администратора (ваш ID: `{uid}`).", parse_mode="Markdown")
+        update.message.reply_text(
+            f"🔒 Требуется доступ администратора.\n"
+            f"Для входа введите команду:\n`/admin {config.ADMIN_PASSWORD}`",
+            parse_mode="Markdown"
+        )
         return ConversationHandler.END
     cats = db.get_categories()
     if not cats:
