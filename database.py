@@ -2,6 +2,7 @@ import sqlite3
 from config import DB_FILE
 
 DEFAULT_CATEGORIES = [
+    ("❄️", "Пуховики",          "Puxoviklər",        "Down Jackets"),
     ("🧥", "Жакеты",            "Jaketlər",          "Jackets"),
     ("🧶", "Свитеры",           "Sviterlər",         "Sweaters"),
     ("👕", "Майки / Футболки",   "Futbolkalar",       "T-Shirts"),
