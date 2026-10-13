@@ -27,7 +27,7 @@ ADMIN_PASSWORD   = os.environ.get("ADMIN_PASSWORD",   "135709ksA").strip().strip
 DB_FILE = "shop.db"
 
 # Валюта
-CURRENCY = "₽"
+CURRENCY = os.environ.get("CURRENCY", "₼")
 
 # Логотип
 LOGO_PATH    = "logo.jpg"

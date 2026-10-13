@@ -672,7 +672,7 @@ def admin_del_hint(update: Update, context: CallbackContext):
     text = "Для удаления: `/delproduct <id>`\n\n*Товары:*\n"
     for p in products:
         pid, name, _, price, _, _, _, cat_emoji, cat_name_ru = p
-        text += f"  #{pid} {cat_emoji or ''}  {name} — {price:.0f} ₽\n"
+        text += f"  #{pid} {cat_emoji or ''}  {name} — {price:.0f} {config.CURRENCY}\n"
     update.message.reply_text(text, parse_mode="Markdown")
 
 
@@ -744,7 +744,7 @@ def add_product_name(update: Update, context: CallbackContext):
 
 def add_product_desc(update: Update, context: CallbackContext):
     context.user_data["np_desc"] = update.message.text.strip()
-    update.message.reply_text("Введите *цену* в рублях (только число):", parse_mode="Markdown")
+    update.message.reply_text(f"Введите *цену* в манатах ₼ (только число, например: 45 или 120):", parse_mode="Markdown")
     return ADD_PRICE
 
 
